@@ -1,0 +1,10 @@
+module dev.gidan.raycastfx {
+    requires javafx.controls;
+    requires javafx.fxml;
+    requires org.slf4j;
+
+
+    opens dev.gidan.raycastfx to javafx.fxml;
+    exports dev.gidan.raycastfx;
+    exports dev.gidan.raycastfx.util;
+}

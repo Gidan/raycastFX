@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.layout.Pane?>
+<Pane fx:id="root" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="dev.gidan.raycastfx.GameController">
+
+    <Canvas fx:id="canvas"
+            width="${root.width}" height="${root.height}"/>
+</Pane>
