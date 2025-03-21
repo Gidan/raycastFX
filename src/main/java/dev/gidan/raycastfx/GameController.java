@@ -17,13 +17,11 @@ public class GameController {
 
     @FXML
     public Canvas canvas;
-    private Camera camera;
 
     @FXML
     public void initialize() {
-        LOGGER.debug("This is a debug message");
-
-        camera = new Camera();
+        Player player = new Player();
+        MiniMap miniMap = new MiniMap(canvas, player);
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
         // Start the animation timer
@@ -48,7 +46,8 @@ public class GameController {
                 // Clear the canvas
                 gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-                camera.update(canvas, delta);
+                player.update(delta);
+                miniMap.update(delta);
 
                 drawFrameCount(delta);
             }
