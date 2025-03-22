@@ -1,14 +1,17 @@
 package dev.gidan.raycastfx;
 
+import dev.gidan.raycastfx.prefabs.Player;
+import dev.gidan.raycastfx.prefabs.Wall;
+import dev.gidan.raycastfx.util.Vec2D;
 import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Set;
 
 
 public class GameController {
@@ -21,13 +24,16 @@ public class GameController {
     @FXML
     public void initialize() {
         Player player = new Player();
-        MiniMap miniMap = new MiniMap(canvas, player);
+        Set<GameObject> walls = Set.of(new Wall(Vec2D.of(1, 1)));
+
+        MiniMap miniMap = new MiniMap(canvas, player, walls);
+
         GraphicsContext gc = canvas.getGraphicsContext2D();
 
         // Start the animation timer
         AnimationTimer timer = new AnimationTimer() {
             long start = 0L;
-            final Font font = Font.font("Arial", FontWeight.BOLD, 20);
+
             final int updateFpsCountFrameSkip = 60;
             int frameCount = 0;
             int fps = 0;
@@ -54,7 +60,7 @@ public class GameController {
 
             private void drawFrameCount(final double delta) {
                 gc.setFill(Color.YELLOW);
-                gc.setFont(font);
+                gc.setFont(Fonts.SMALL_BOLD);
                 if (frameCount >= updateFpsCountFrameSkip) {
                     frameCount = 0;
                     fps = (int)(1.0 / delta);

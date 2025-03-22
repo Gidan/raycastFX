@@ -6,8 +6,12 @@ public class Vec2D {
     private double x;
     private double y;
 
+    public static Vec2D of(double x, double y) {
+        return new Vec2D(x, y);
+    }
+
     // Constructor
-    public Vec2D(double x, double y) {
+    private Vec2D(double x, double y) {
         this.x = x;
         this.y = y;
     }

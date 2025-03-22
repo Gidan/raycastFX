@@ -1,17 +1,19 @@
-package dev.gidan.raycastfx;
+package dev.gidan.raycastfx.prefabs;
 
+import dev.gidan.raycastfx.GameObject;
+import dev.gidan.raycastfx.Input;
 import dev.gidan.raycastfx.util.Vec2D;
 import javafx.scene.input.KeyCode;
 
 public class Player extends GameObject {
 
-    private static final double INITIAL_PLAYER_POSITION_X = 0;
+    private static final double INITIAL_PLAYER_POSITION_X = 10;
     private static final double INITIAL_PLAYER_POSITION_Y = 0;
 
     private int speed = 20;
 
     public Player() {
-        super(new Vec2D(INITIAL_PLAYER_POSITION_X, INITIAL_PLAYER_POSITION_Y));
+        super(Vec2D.of(INITIAL_PLAYER_POSITION_X, INITIAL_PLAYER_POSITION_Y));
     }
 
     @Override

@@ -14,6 +14,8 @@ public class Input {
     private static final Logger LOGGER = LoggerFactory.getLogger(Input.class);
 
     private final Map<KeyCode, Integer> states = new HashMap<>();
+    private double mouseX;
+    private double mouseY;
 
     private static Input instance;
 
@@ -37,10 +39,23 @@ public class Input {
             states.put(keyCode, 0);
         });
 
+        scene.setOnMouseMoved(mouseEvent -> {
+            mouseX = mouseEvent.getSceneX();
+            mouseY = mouseEvent.getSceneY();
+        });
+
         scene.getRoot().requestFocus();
     }
 
     public boolean isPressed(KeyCode keyCode) {
         return states.containsKey(keyCode) && states.get(keyCode) == 1;
+    }
+
+    public double getMouseX() {
+        return mouseX;
+    }
+
+    public double getMouseY() {
+        return mouseY;
     }
 }

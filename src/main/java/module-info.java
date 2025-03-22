@@ -7,4 +7,6 @@ module dev.gidan.raycastfx {
     opens dev.gidan.raycastfx to javafx.fxml;
     exports dev.gidan.raycastfx;
     exports dev.gidan.raycastfx.util;
+    exports dev.gidan.raycastfx.prefabs;
+    opens dev.gidan.raycastfx.prefabs to javafx.fxml;
 }
