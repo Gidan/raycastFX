@@ -24,7 +24,7 @@ public class GameController {
     @FXML
     public void initialize() {
         Player player = new Player();
-        Set<GameObject> walls = Set.of(new Wall(Vec2D.of(1, 1)));
+        Set<GameObject> walls = Set.of(Wall.at(1, 1), Wall.at(2, -1));
 
         MiniMap miniMap = new MiniMap(canvas, player, walls);
 
