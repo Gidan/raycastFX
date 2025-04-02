@@ -7,10 +7,10 @@ import javafx.scene.input.KeyCode;
 
 public class Player extends GameObject {
 
-    private static final double INITIAL_PLAYER_POSITION_X = 10;
+    private static final double INITIAL_PLAYER_POSITION_X = 0;
     private static final double INITIAL_PLAYER_POSITION_Y = 0;
 
-    private int speed = 20;
+    private double speed = 20.0;
 
     public Player() {
         super(Vec2D.of(INITIAL_PLAYER_POSITION_X, INITIAL_PLAYER_POSITION_Y));
@@ -49,10 +49,10 @@ public class Player extends GameObject {
         double angle = Math.toRadians(1);
 
         if (input.isPressed(KeyCode.E)) {
-            faceDirection = faceDirection.rotate(angle);
+            rotation = rotation.rotate(angle);
         }
         if (input.isPressed(KeyCode.Q)) {
-            faceDirection = faceDirection.rotate(-angle);
+            rotation = rotation.rotate(-angle);
         }
     }
 

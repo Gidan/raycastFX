@@ -1,7 +1,9 @@
 package dev.gidan.raycastfx;
 
 import dev.gidan.raycastfx.prefabs.Player;
+import dev.gidan.raycastfx.util.GridUtil;
 import dev.gidan.raycastfx.util.Rectangle2DUtil;
+import dev.gidan.raycastfx.util.Trig;
 import dev.gidan.raycastfx.util.Vec2D;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.Canvas;
@@ -42,6 +44,11 @@ public class MiniMap extends GameObject {
     private final int centerPointRadius = 4 * scale;
     private boolean drawGrid = true;
 
+    int minimapPlaneHalfWidth = minimapWidth / 2;
+    int minimapPlaneHalfHeight = minimapHeight / 2;
+    Vec2D minimapSize = Vec2D.of(minimapWidth, minimapHeight);
+    Vec2D minimapOffset = Vec2D.of(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y);
+
     public MiniMap(Canvas canvas, Player player, Set<GameObject> walls) {
         super(Vec2D.of(INITIAL_CAMERA_POSITION_X, INITIAL_CAMERA_POSITION_Y));
         gc = canvas.getGraphicsContext2D();
@@ -51,9 +58,7 @@ public class MiniMap extends GameObject {
 
     private double calculateFaceDirectionAngle() {
         Vec2D worldMousePosition = calculateWorldMousePosition();
-        double dx = this.position.getX() - worldMousePosition.getX();
-        double dy = this.position.getY() - worldMousePosition.getY();
-        return Math.atan2(dy, dx);
+        return Vec2D.Util.angle(this.position, worldMousePosition);
     }
 
     @Override
@@ -62,31 +67,34 @@ public class MiniMap extends GameObject {
         this.position = player.position.multiply(scale);
 
         //this.faceDirection = player.faceDirection;
-        double v = calculateFaceDirectionAngle();
-        this.faceDirection = Vec2D.LEFT.rotate(v);
+        double faceDirectionAngle = calculateFaceDirectionAngle();
+        this.player.rotation = Vec2D.LEFT.rotate(faceDirectionAngle);
 
-        // Draw a rectangle
+        // Draw minimap background
         gc.setFill(Color.LIGHTBLUE);
         gc.fillRect(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y, minimapWidth, minimapHeight);
 
         drawMouseCoordinates();
+        drawPlayerPosition();
         drawWalls();
         drawGrid();
         drawCenterPoint();
-        drawFaceDirection();
+        //drawFaceDirection();
+        rayCast(position, player.rotation, 3);
+        drawPlayerRotationAngle();
     }
 
     private void drawFaceDirection() {
         // draw center point
         gc.setStroke(Color.RED);
 
-        double x = MINIMAP_PROJECTION_X + (double) minimapWidth / 2;
-        double y = MINIMAP_PROJECTION_Y + (double) minimapHeight / 2;
-
-        Vec2D d = Vec2D.of(x, y).add(faceDirection.multiply(20));
+        // the player is always centered in the minimap.
+        // So x, y can just be the center of the minimap plus the minimap offset.
+        Vec2D origin = minimapSize.multiply(0.5).add(minimapOffset);
+        Vec2D direction = origin.add(player.rotation.multiply(20));
 
         gc.setLineWidth(2);
-        gc.strokeLine(x, y, d.getX(), d.getY());
+        gc.strokeLine(origin.getX(), origin.getY(), direction.getX(), direction.getY());
         gc.setLineWidth(1);
     }
 
@@ -94,8 +102,8 @@ public class MiniMap extends GameObject {
         // draw center point
         gc.setFill(Color.RED);
 
-        double x = MINIMAP_PROJECTION_X + (double) minimapWidth / 2 - centerPointRadius;
-        double y = MINIMAP_PROJECTION_Y + (double) minimapHeight / 2 - centerPointRadius;
+        double x = MINIMAP_PROJECTION_X + minimapPlaneHalfWidth - centerPointRadius;
+        double y = MINIMAP_PROJECTION_Y + minimapPlaneHalfHeight - centerPointRadius;
         double diameter = centerPointRadius * 2;
 
         gc.fillOval(x, y, diameter, diameter);
@@ -105,11 +113,11 @@ public class MiniMap extends GameObject {
         if (drawGrid) {
             gc.setStroke(GRID_LINE_COLOR);
 
-            int cameraPlaneHalfWidth = minimapWidth / 2;
-            int cameraPlaneHalfHeight = minimapHeight / 2;
+            double posX = position.getX();
+            double posY = position.getY();
 
             for (int x = 0; x < minimapWidth; x++) {
-                int i = (int) (position.getX()) - cameraPlaneHalfWidth + x;
+                int i = (int) posX - minimapPlaneHalfWidth + x;
                 if (Math.abs(i) % gridCellSize == 0) {
                     gc.strokeLine(x + MINIMAP_PROJECTION_X,
                             MINIMAP_PROJECTION_Y,
@@ -119,7 +127,7 @@ public class MiniMap extends GameObject {
             }
 
             for (int y = 0; y < minimapHeight; y++) {
-                int i = (int) (position.getY()) - cameraPlaneHalfHeight + y;
+                int i = (int) posY - minimapPlaneHalfHeight + y;
                 if (Math.abs(i) % gridCellSize == 0) {
                     gc.strokeLine(MINIMAP_PROJECTION_X,
                             y + MINIMAP_PROJECTION_Y,
@@ -131,16 +139,7 @@ public class MiniMap extends GameObject {
     }
 
     private Vec2D calculateWorldMousePosition() {
-        int mouseX = (int) Input.getInstance().getMouseX();
-        int mouseY = (int) Input.getInstance().getMouseY();
-
-        int cameraPlaneHalfWidth = minimapWidth / 2;
-        int cameraPlaneHalfHeight = minimapHeight / 2;
-
-        int worldX = (int) (position.getX()) - cameraPlaneHalfWidth + mouseX - MINIMAP_PROJECTION_X;
-        int worldY = (int) (position.getY()) - cameraPlaneHalfHeight + mouseY - MINIMAP_PROJECTION_Y;
-
-        return Vec2D.of(worldX, worldY);
+        return sceneToWorld(Input.getInstance().mouse());
     }
 
     private void drawMouseCoordinates() {
@@ -153,22 +152,45 @@ public class MiniMap extends GameObject {
 
         gc.setFill(Color.RED);
         gc.setFont(Fonts.TINY_NORMAL);
-        gc.fillText(String.format("scene %d - %d", mouseX, mouseY),
+        gc.fillText(String.format("mouse scene %d - %d", mouseX, mouseY),
                 MINIMAP_PROJECTION_X,
                 MINIMAP_PROJECTION_Y + minimapHeight + 15
         );
-        gc.fillText(String.format("world %d - %d", worldX, worldY),
+        gc.fillText(String.format("mouse world %d - %d", worldX, worldY),
                 MINIMAP_PROJECTION_X,
                 MINIMAP_PROJECTION_Y + minimapHeight + 30
         );
     }
 
-    private void drawWalls() {
-        int cameraPlaneHalfWidth = minimapWidth / 2;
-        int cameraPlaneHalfHeight = minimapHeight / 2;
+    private void drawPlayerPosition() {
+        Vec2D playerPosition = this.position;
+        Vec2D playerScenePosition = worldToScene(playerPosition);
+        gc.setFill(Color.RED);
+        gc.setFont(Fonts.TINY_NORMAL);
+        gc.fillText(String.format("player world x:%.02f y:%.02f", playerPosition.getX(), playerPosition.getY()),
+                MINIMAP_PROJECTION_X,
+                MINIMAP_PROJECTION_Y + minimapHeight + 45
+        );
+        gc.fillText(String.format("player scene x:%.02f y:%.02f", playerScenePosition.getX(), playerScenePosition.getY()),
+                MINIMAP_PROJECTION_X,
+                MINIMAP_PROJECTION_Y + minimapHeight + 60
+        );
+    }
 
-        int minWorldX = (int) (position.getX()) - cameraPlaneHalfWidth;
-        int minWorldY = (int) (position.getY()) - cameraPlaneHalfHeight;
+    private void drawPlayerRotationAngle() {
+        Vec2D playerRotation = player.rotation;
+        double rotationAngle = playerRotation.angle();
+        gc.setFill(Color.RED);
+        gc.setFont(Fonts.TINY_NORMAL);
+        gc.fillText(String.format("player rot angle rad:%.02f deg:%.02f", rotationAngle, Math.toDegrees(rotationAngle)),
+                MINIMAP_PROJECTION_X,
+                MINIMAP_PROJECTION_Y + minimapHeight + 75
+        );
+    }
+
+    private void drawWalls() {
+        int minWorldX = (int) (position.getX()) - minimapPlaneHalfWidth;
+        int minWorldY = (int) (position.getY()) - minimapPlaneHalfHeight;
         Rectangle2D miniMapArea = new Rectangle2D(minWorldX, minWorldY, minimapWidth, minimapHeight);
         gc.setFill(Color.DARKRED);
         walls.forEach(wall -> {
@@ -178,13 +200,101 @@ public class MiniMap extends GameObject {
             Rectangle2D intersection = Rectangle2DUtil.getIntersection(miniMapArea, wallArea);
             if (intersection != null) {
                 gc.fillRect(
-                        intersection.getMinX() + cameraPlaneHalfWidth + MINIMAP_PROJECTION_X - this.position.getX(),
-                        intersection.getMinY() + cameraPlaneHalfHeight + MINIMAP_PROJECTION_Y - this.position.getY(),
+                        intersection.getMinX() + minimapPlaneHalfWidth + MINIMAP_PROJECTION_X - this.position.getX(),
+                        intersection.getMinY() + minimapPlaneHalfHeight + MINIMAP_PROJECTION_Y - this.position.getY(),
                         intersection.getWidth(),
                         intersection.getHeight()
                 );
             }
         });
     }
+
+    private void rayCast(Vec2D origin, Vec2D direction, int jumps) {
+        double originX = origin.getX();
+        double originY = origin.getY();
+
+        double minX = GridUtil.nearestMultipleBelow(originX, gridCellSize);
+        double minY = GridUtil.nearestMultipleBelow(originY, gridCellSize);
+        double maxX = GridUtil.nearestMultipleAbove(originX, gridCellSize);
+        double maxY = GridUtil.nearestMultipleAbove(originY, gridCellSize);
+
+        Vec2D topLeft = Vec2D.of(minX, minY);
+        Vec2D topRight = Vec2D.of(maxX, minY);
+        Vec2D bottomRight = Vec2D.of(maxX, maxY);
+        Vec2D bottomLeft = Vec2D.of(minX, maxY);
+
+        Vec2D topLeftScene = worldToScene(topLeft);
+        Vec2D topRightScene = worldToScene(topRight);
+        Vec2D bottomRightScene = worldToScene(bottomRight);
+        Vec2D bottomLeftScene = worldToScene(bottomLeft);
+
+        gc.setFill(Color.BLUE);
+        gc.fillOval(topLeftScene.getX() -2, topLeftScene.getY() -2, 4, 4);
+        gc.fillOval(topRightScene.getX() -2, topRightScene.getY() -2, 4, 4);
+        gc.fillOval(bottomRightScene.getX() -2, bottomRightScene.getY() -2, 4, 4);
+        gc.fillOval(bottomLeftScene.getX() -2, bottomLeftScene.getY() -2, 4, 4);
+
+        double topRightAngle = -(Math.PI - Vec2D.Util.angle(origin, topRight));
+        double topLeftAngle = -(Math.PI - Vec2D.Util.angle(origin, topLeft));
+        double bottomRightAngle = Math.PI + Vec2D.Util.angle(origin, bottomRight);
+        double bottomLeftAngle = Math.PI + Vec2D.Util.angle(origin, bottomLeft);
+
+        double rotationAngle = direction.angle();
+        double x, y;
+
+        if (rotationAngle < 0) {
+            if (rotationAngle > topRightAngle) {
+                x = maxX;
+                y = originY + Trig.tan(rotationAngle) * Math.abs(originX - maxX);
+            } else if (rotationAngle < topLeftAngle) {
+                x = minX;
+                y = originY - (Trig.tan(rotationAngle) * Math.abs(originX - minX));
+            } else {
+                x = originX - Trig.cotan(rotationAngle) * Math.abs(originY - minY);
+                y = minY;
+            }
+        } else {
+            if (rotationAngle < bottomRightAngle) {
+                x = maxX;
+                y = originY + Trig.tan(rotationAngle) * Math.abs(originX - maxX);
+            } else if (rotationAngle < bottomLeftAngle) {
+                x = originX + Trig.cotan(rotationAngle) * Math.abs(originY - maxY);
+                y = maxY;
+            } else {
+                x = minX;
+                y = originY - (Trig.tan(rotationAngle) * Math.abs(originX - minX));
+            }
+        }
+
+        Vec2D collision = Vec2D.of(x, y);
+        Vec2D scenePosition = worldToScene(collision);
+        Vec2D originScene = worldToScene(origin);
+
+        gc.setFill(Color.RED);
+        gc.fillOval(scenePosition.getX() -3, scenePosition.getY() -3, 6, 6);
+
+        gc.setStroke(Color.RED);
+        gc.setLineWidth(2);
+        gc.strokeLine(originScene.getX(), originScene.getY(), scenePosition.getX(), scenePosition.getY());
+        gc.setLineWidth(1);
+
+        if (jumps > 0) {
+            rayCast(collision.add(direction.multiply(0.1)), direction, --jumps);
+        }
+    }
+
+    private Vec2D worldToScene(Vec2D world) {
+        return world.subtract(position)
+                .add(minimapSize.multiply(0.5))
+                .add(minimapOffset);
+    }
+
+    private Vec2D sceneToWorld(Vec2D scene) {
+        return Vec2D.of(position.getX(), position.getY())
+                .add(scene)
+                .subtract(minimapSize.multiply(0.5).add(minimapOffset));
+    }
+
+
 
 }

@@ -86,6 +86,10 @@ public class Vec2D {
         return new Vec2D(x / mag, y / mag);
     }
 
+    public double angle() {
+        return Math.atan2(y, x);
+    }
+
     // String representation
     @Override
     public String toString() {
@@ -112,5 +116,15 @@ public class Vec2D {
     public static Vec2D LEFT = new Vec2D(-1, 0);
     public static Vec2D RIGHT = new Vec2D(1, 0);
     public static Vec2D DOWN = new Vec2D(0, 1);
+
+    public static final class Util {
+
+        public static double angle(Vec2D v1, Vec2D v2) {
+            double dx = v1.getX() - v2.getX();
+            double dy = v1.getY() - v2.getY();
+            return Math.atan2(dy, dx);
+        }
+
+    }
 }
 

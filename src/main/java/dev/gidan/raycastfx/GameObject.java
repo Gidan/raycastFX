@@ -5,11 +5,11 @@ import dev.gidan.raycastfx.util.Vec2D;
 public class GameObject {
 
     protected Vec2D position;
-    protected Vec2D faceDirection;
+    protected Vec2D rotation;
 
     protected GameObject(Vec2D position) {
         this.position = position;
-        faceDirection = Vec2D.UP;
+        rotation = Vec2D.UP;
     }
 
     public void update(double deltaTimeInMillis) {
@@ -20,8 +20,10 @@ public class GameObject {
         return position;
     }
 
-    public Vec2D getFaceDirection() {
-        return faceDirection;
+    public Vec2D getRotation() {
+        return rotation;
     }
+
+
 
 }

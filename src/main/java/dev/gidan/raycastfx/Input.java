@@ -1,5 +1,6 @@
 package dev.gidan.raycastfx;
 
+import dev.gidan.raycastfx.util.Vec2D;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -57,5 +58,9 @@ public class Input {
 
     public double getMouseY() {
         return mouseY;
+    }
+
+    public Vec2D mouse() {
+        return Vec2D.of(mouseX, mouseY);
     }
 }
