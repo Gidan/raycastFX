@@ -1,11 +1,11 @@
 # RaycastFX
 Old school Raycast rendering made in JavaFX.
 
-## TODO
-- [ ] 2D camera - in progress
-- [ ] Player 
-- [ ] Show a wall in the grid
+## To-Do
+- [x] 2D camera
+- [x] Player 
+- [x] Show a wall in the grid
 - [ ] Add collisions
-- [ ] 2d raycast
+- [ ] 2d raycast - in progress
 - [ ] rendering
 - [ ] texturing (optional)
