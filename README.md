@@ -6,6 +6,6 @@ Old school Raycast rendering made in JavaFX.
 - [x] Player 
 - [x] Show a wall in the grid
 - [ ] Add collisions
-- [ ] 2d raycast - in progress
-- [ ] rendering
+- [x] 2d raycast
+- [x] rendering - in progress
 - [ ] texturing (optional)
