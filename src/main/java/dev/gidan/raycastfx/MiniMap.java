@@ -37,10 +37,11 @@ public class MiniMap extends GameObject {
     public static final double EPSILON = 0.03;
     public static final double INFINITE_DISTANCE = 1_000_000;
 
-    private final int scale = 2;
+    private final int scale = 1;
     private final GraphicsContext gc;
     private final Player player;
     private final Set<Wall> walls;
+    private final Canvas canvas;
 
     private int minimapWidth = INITIAL_MINIMAP_PLANE_WIDTH * scale;
     private int minimapHeight = INITIAL_MINIMAP_PLANE_HEIGHT * scale;
@@ -53,9 +54,13 @@ public class MiniMap extends GameObject {
     Vec2D minimapSize = Vec2D.of(minimapWidth, minimapHeight);
     Vec2D minimapOffset = Vec2D.of(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y);
 
+    private double fovAngle = 120;
+    private int lines = 90;
+
     public MiniMap(Canvas canvas, Player player, Set<Wall> walls) {
         super(Vec2D.of(INITIAL_CAMERA_POSITION_X, INITIAL_CAMERA_POSITION_Y));
         gc = canvas.getGraphicsContext2D();
+        this.canvas = canvas;
         this.player = player;
         this.walls = walls;
     }
@@ -78,6 +83,28 @@ public class MiniMap extends GameObject {
         gc.setFill(Color.LIGHTBLUE);
         gc.fillRect(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y, minimapWidth, minimapHeight);
 
+        //double distance = rayCast(position, player.rotation);
+        //drawRaycastDistance(distance);
+
+        double canvasWidth = canvas.getWidth();
+        double canvasHeight = canvas.getHeight();
+        double lineWidth = canvasWidth / lines;
+        double anglePerLine = fovAngle / lines;
+        double startAngle = (fovAngle/2) * -1;
+
+        for (int ray = 0; ray < lines; ray++) {
+            double angle = startAngle + (anglePerLine * ray);
+            double distance = rayCast(position, player.rotation.rotate(Math.toRadians(angle)));
+            if (distance < INFINITE_DISTANCE) {
+                double x = ray * lineWidth;
+                double lineHeight = (1 / Math.max(distance, 1)) * canvasHeight * 10 ;
+                Color color = Color.hsb(Color.RED.getHue(), Color.RED.getSaturation(), Math.max(0, Math.min(1.0, 1 / distance * 10)));
+                gc.setStroke(color);
+                gc.setLineWidth(lineWidth + 2);
+                gc.strokeLine(x, canvasHeight / 2 - lineHeight / 2, x, canvasHeight / 2 + lineHeight / 2);
+            }
+        }
+
         drawMouseCoordinates();
         drawPlayerPosition();
         drawWalls();
@@ -85,10 +112,6 @@ public class MiniMap extends GameObject {
         drawCenterPoint();
         //drawFaceDirection();
         drawPlayerRotationAngle();
-
-        double distance = rayCast(position, player.rotation);
-        drawRaycastDistance(distance);
-
     }
 
     private void drawFaceDirection() {
@@ -118,6 +141,7 @@ public class MiniMap extends GameObject {
 
     private void drawGrid() {
         if (drawGrid) {
+            gc.setLineWidth(1);
             gc.setStroke(GRID_LINE_COLOR);
 
             double posX = position.getX();
