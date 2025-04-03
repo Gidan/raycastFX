@@ -33,6 +33,8 @@ public class MiniMap extends GameObject {
     private static final int MINIMAP_PROJECTION_Y = 20;
     private static final int GRID_SIZE = 20;
 
+    public static final double EPSILON = 0.03;
+
     private final int scale = 2;
     private final GraphicsContext gc;
     private final Player player;
@@ -80,8 +82,11 @@ public class MiniMap extends GameObject {
         drawGrid();
         drawCenterPoint();
         //drawFaceDirection();
-        rayCast(position, player.rotation, 3);
         drawPlayerRotationAngle();
+
+        double distance = rayCast(position, player.rotation);
+        drawRaycastDistance(distance);
+
     }
 
     private void drawFaceDirection() {
@@ -188,10 +193,23 @@ public class MiniMap extends GameObject {
         );
     }
 
-    private void drawWalls() {
+    private void drawRaycastDistance(double distance) {
+        gc.setFill(Color.RED);
+        gc.setFont(Fonts.TINY_NORMAL);
+        gc.fillText(String.format("raycast distance:%.02f", distance),
+                MINIMAP_PROJECTION_X,
+                MINIMAP_PROJECTION_Y + minimapHeight + 90
+        );
+    }
+
+    private Rectangle2D getMiniMapWorldBounds() {
         int minWorldX = (int) (position.getX()) - minimapPlaneHalfWidth;
         int minWorldY = (int) (position.getY()) - minimapPlaneHalfHeight;
-        Rectangle2D miniMapArea = new Rectangle2D(minWorldX, minWorldY, minimapWidth, minimapHeight);
+        return new Rectangle2D(minWorldX, minWorldY, minimapWidth, minimapHeight);
+    }
+
+    private void drawWalls() {
+        Rectangle2D miniMapArea = getMiniMapWorldBounds();
         gc.setFill(Color.DARKRED);
         walls.forEach(wall -> {
             double worldX = wall.position.getX() * gridCellSize;
@@ -209,9 +227,15 @@ public class MiniMap extends GameObject {
         });
     }
 
-    private void rayCast(Vec2D origin, Vec2D direction, int jumps) {
+    private double rayCast(Vec2D origin, Vec2D direction) {
         double originX = origin.getX();
         double originY = origin.getY();
+
+        Rectangle2D miniMapWorldBounds = getMiniMapWorldBounds();
+
+        if (!Rectangle2DUtil.containsPoint(miniMapWorldBounds, origin)) {
+            return -1.0;
+        }
 
         double minX = GridUtil.nearestMultipleBelow(originX, gridCellSize);
         double minY = GridUtil.nearestMultipleBelow(originY, gridCellSize);
@@ -278,9 +302,13 @@ public class MiniMap extends GameObject {
         gc.strokeLine(originScene.getX(), originScene.getY(), scenePosition.getX(), scenePosition.getY());
         gc.setLineWidth(1);
 
-        if (jumps > 0) {
-            rayCast(collision.add(direction.multiply(0.1)), direction, --jumps);
+        double distance = Math.abs(origin.subtract(collision).magnitude());
+        double nextDistance = rayCast(collision.add(direction.multiply(EPSILON)), direction);
+        if (nextDistance > 0) {
+            distance += nextDistance;
         }
+
+        return distance;
     }
 
     private Vec2D worldToScene(Vec2D world) {

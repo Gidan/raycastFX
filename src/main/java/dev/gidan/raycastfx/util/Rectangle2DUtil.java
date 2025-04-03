@@ -17,4 +17,9 @@ public class Rectangle2DUtil {
         }
     }
 
+    public static boolean containsPoint(Rectangle2D rect, Vec2D point) {
+        return point.getX() >= rect.getMinX() && point.getX() <= rect.getMaxX() &&
+                point.getY() >= rect.getMinY() && point.getY() <= rect.getMaxY();
+    }
+
 }
