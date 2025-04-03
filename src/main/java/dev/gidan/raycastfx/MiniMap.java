@@ -1,6 +1,7 @@
 package dev.gidan.raycastfx;
 
 import dev.gidan.raycastfx.prefabs.Player;
+import dev.gidan.raycastfx.prefabs.Wall;
 import dev.gidan.raycastfx.util.GridUtil;
 import dev.gidan.raycastfx.util.Rectangle2DUtil;
 import dev.gidan.raycastfx.util.Trig;
@@ -34,11 +35,12 @@ public class MiniMap extends GameObject {
     private static final int GRID_SIZE = 20;
 
     public static final double EPSILON = 0.03;
+    public static final double INFINITE_DISTANCE = 1_000_000;
 
     private final int scale = 2;
     private final GraphicsContext gc;
     private final Player player;
-    private final Set<GameObject> walls;
+    private final Set<Wall> walls;
 
     private int minimapWidth = INITIAL_MINIMAP_PLANE_WIDTH * scale;
     private int minimapHeight = INITIAL_MINIMAP_PLANE_HEIGHT * scale;
@@ -51,7 +53,7 @@ public class MiniMap extends GameObject {
     Vec2D minimapSize = Vec2D.of(minimapWidth, minimapHeight);
     Vec2D minimapOffset = Vec2D.of(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y);
 
-    public MiniMap(Canvas canvas, Player player, Set<GameObject> walls) {
+    public MiniMap(Canvas canvas, Player player, Set<Wall> walls) {
         super(Vec2D.of(INITIAL_CAMERA_POSITION_X, INITIAL_CAMERA_POSITION_Y));
         gc = canvas.getGraphicsContext2D();
         this.player = player;
@@ -234,7 +236,16 @@ public class MiniMap extends GameObject {
         Rectangle2D miniMapWorldBounds = getMiniMapWorldBounds();
 
         if (!Rectangle2DUtil.containsPoint(miniMapWorldBounds, origin)) {
-            return -1.0;
+            return INFINITE_DISTANCE;
+        }
+
+        boolean isColliding = walls.stream().map(w -> w.position.multiply(gridCellSize))
+                .filter(wallPosition -> Rectangle2DUtil.containsPoint(miniMapWorldBounds, wallPosition))
+                .map(w -> new Rectangle2D(w.getX(), w.getY(), gridCellSize, gridCellSize))
+                .anyMatch(wallBounds -> Rectangle2DUtil.containsPoint(wallBounds, origin));
+
+        if (isColliding) {
+            return -1;
         }
 
         double minX = GridUtil.nearestMultipleBelow(originX, gridCellSize);
@@ -308,7 +319,7 @@ public class MiniMap extends GameObject {
             distance += nextDistance;
         }
 
-        return distance;
+        return Math.min(distance, INFINITE_DISTANCE);
     }
 
     private Vec2D worldToScene(Vec2D world) {

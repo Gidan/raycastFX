@@ -2,7 +2,6 @@ package dev.gidan.raycastfx;
 
 import dev.gidan.raycastfx.prefabs.Player;
 import dev.gidan.raycastfx.prefabs.Wall;
-import dev.gidan.raycastfx.util.Vec2D;
 import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
@@ -24,7 +23,7 @@ public class GameController {
     @FXML
     public void initialize() {
         Player player = new Player();
-        Set<GameObject> walls = Set.of(Wall.at(1, 1), Wall.at(2, -1));
+        Set<Wall> walls = Set.of(Wall.at(1, 1), Wall.at(2, -1));
 
         MiniMap miniMap = new MiniMap(canvas, player, walls);
 
