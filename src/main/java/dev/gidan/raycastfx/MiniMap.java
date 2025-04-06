@@ -75,10 +75,6 @@ public class MiniMap extends GameObject {
         // bind camera position to player's position
         this.position = player.position.multiply(scale);
 
-        //this.faceDirection = player.faceDirection;
-        double faceDirectionAngle = calculateFaceDirectionAngle();
-        this.player.rotation = Vec2D.LEFT.rotate(faceDirectionAngle);
-
         // Draw minimap background
         gc.setFill(Color.LIGHTBLUE);
         gc.fillRect(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y, minimapWidth, minimapHeight);

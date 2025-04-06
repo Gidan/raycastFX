@@ -26,6 +26,9 @@ public class GameController {
     public void initialize() {
         Player player = new Player();
         Set<Wall> walls = Set.of(
+                Wall.at(-1, -2),
+                Wall.at(0, -2),
+                Wall.at(1, -2),
                 Wall.at(1, 1),
                 Wall.at(2, 2),
                 Wall.at(3, 3),

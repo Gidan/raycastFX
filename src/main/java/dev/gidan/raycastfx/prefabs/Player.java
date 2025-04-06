@@ -26,16 +26,16 @@ public class Player extends GameObject {
         Input input = Input.getInstance();
         Vec2D direction = Vec2D.ZERO;
         if (input.isPressed(KeyCode.W)) {
-            direction = direction.add(Vec2D.UP);
+            direction = direction.add(rotation);
         }
         if (input.isPressed(KeyCode.S)) {
-            direction = direction.add(Vec2D.DOWN);
+            direction = direction.add(rotation.rotate(Math.PI));
         }
         if (input.isPressed(KeyCode.A)) {
-            direction = direction.add(Vec2D.LEFT);
+            direction = direction.add(rotation.rotate(Math.PI / 2 * -1));
         }
         if (input.isPressed(KeyCode.D)) {
-            direction = direction.add(Vec2D.RIGHT);
+            direction = direction.add(rotation.rotate(Math.PI / 2));
         }
 
         if (direction.magnitude() > 0) {
