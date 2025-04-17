@@ -55,7 +55,7 @@ public class MiniMap extends GameObject {
     Vec2D minimapOffset = Vec2D.of(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y);
 
     private double fovAngle = 120;
-    private int lines = 90;
+    private int lines = 120;
 
     public MiniMap(Canvas canvas, Player player, Set<Wall> walls) {
         super(Vec2D.of(INITIAL_CAMERA_POSITION_X, INITIAL_CAMERA_POSITION_Y));
@@ -84,20 +84,25 @@ public class MiniMap extends GameObject {
 
         double canvasWidth = canvas.getWidth();
         double canvasHeight = canvas.getHeight();
+        double halfCanvasHeight = canvasHeight / 2;
         double lineWidth = canvasWidth / lines;
         double anglePerLine = fovAngle / lines;
         double startAngle = (fovAngle/2) * -1;
 
+        double baseHue = Color.RED.getHue();
+        double baseSaturation = Color.RED.getSaturation();
+
         for (int ray = 0; ray < lines; ray++) {
-            double angle = startAngle + (anglePerLine * ray);
-            double distance = rayCast(position, player.rotation.rotate(Math.toRadians(angle)));
+            double angleDeltaInDegrees = startAngle + (anglePerLine * ray);
+            double distance = rayCast(position, player.rotation.rotateDeg(angleDeltaInDegrees));
             if (distance < INFINITE_DISTANCE) {
                 double x = ray * lineWidth;
                 double lineHeight = (1 / Math.max(distance, 1)) * canvasHeight * 10 ;
-                Color color = Color.hsb(Color.RED.getHue(), Color.RED.getSaturation(), Math.max(0, Math.min(1.0, 1 / distance * 10)));
+                double halfLineHeight = lineHeight / 2;
+                Color color = Color.hsb(baseHue, baseSaturation, Math.max(0, Math.min(1.0, 1 / distance * 10)));
                 gc.setStroke(color);
                 gc.setLineWidth(lineWidth + 2);
-                gc.strokeLine(x, canvasHeight / 2 - lineHeight / 2, x, canvasHeight / 2 + lineHeight / 2);
+                gc.strokeLine(x, halfCanvasHeight - halfLineHeight, x, halfCanvasHeight + halfLineHeight);
             }
         }
 
@@ -111,7 +116,6 @@ public class MiniMap extends GameObject {
     }
 
     private void drawFaceDirection() {
-        // draw center point
         gc.setStroke(Color.RED);
 
         // the player is always centered in the minimap.
@@ -125,7 +129,6 @@ public class MiniMap extends GameObject {
     }
 
     private void drawCenterPoint() {
-        // draw center point
         gc.setFill(Color.RED);
 
         double x = MINIMAP_PROJECTION_X + minimapPlaneHalfWidth - centerPointRadius;
@@ -249,35 +252,45 @@ public class MiniMap extends GameObject {
         });
     }
 
+    private static int RAYCAST_COLLIDING = -1;
+
     private double rayCast(Vec2D origin, Vec2D direction) {
         double originX = origin.getX();
         double originY = origin.getY();
 
         Rectangle2D miniMapWorldBounds = getMiniMapWorldBounds();
 
+        // if the origin point is outside the minimap area it means we are looking outside the minimap.
+        // so we are not colliding with any wall within the minimap area.
+        // in this case let's pretend we are looking at infinite distance.
         if (!Rectangle2DUtil.containsPoint(miniMapWorldBounds, origin)) {
             return INFINITE_DISTANCE;
         }
 
-        boolean isColliding = walls.stream().map(w -> w.position.multiply(gridCellSize))
+        boolean isColliding = walls.stream()
+                // get the position of each wall
+                .map(w -> w.position.multiply(gridCellSize))
+                // filter out all the walls that are not within minimap bounds
                 .filter(wallPosition -> Rectangle2DUtil.containsPoint(miniMapWorldBounds, wallPosition))
+                // create a 2d rect shape for each potential colliding wall
                 .map(w -> new Rectangle2D(w.getX(), w.getY(), gridCellSize, gridCellSize))
+                // check whether any one of those collide with the origin point
                 .anyMatch(wallBounds -> Rectangle2DUtil.containsPoint(wallBounds, origin));
 
+
         if (isColliding) {
-            return -1;
+            return RAYCAST_COLLIDING;
         }
 
+        // find corner points of the grid cell the origin point is currently located
         double minX = GridUtil.nearestMultipleBelow(originX, gridCellSize);
         double minY = GridUtil.nearestMultipleBelow(originY, gridCellSize);
         double maxX = GridUtil.nearestMultipleAbove(originX, gridCellSize);
         double maxY = GridUtil.nearestMultipleAbove(originY, gridCellSize);
-
         Vec2D topLeft = Vec2D.of(minX, minY);
         Vec2D topRight = Vec2D.of(maxX, minY);
         Vec2D bottomRight = Vec2D.of(maxX, maxY);
         Vec2D bottomLeft = Vec2D.of(minX, maxY);
-
         Vec2D topLeftScene = worldToScene(topLeft);
         Vec2D topRightScene = worldToScene(topRight);
         Vec2D bottomRightScene = worldToScene(bottomRight);
@@ -289,12 +302,15 @@ public class MiniMap extends GameObject {
         gc.fillOval(bottomRightScene.getX() -2, bottomRightScene.getY() -2, 4, 4);
         gc.fillOval(bottomLeftScene.getX() -2, bottomLeftScene.getY() -2, 4, 4);
 
+        // find the angles between the origin point and each corner point
         double topRightAngle = -(Math.PI - Vec2D.Util.angle(origin, topRight));
         double topLeftAngle = -(Math.PI - Vec2D.Util.angle(origin, topLeft));
         double bottomRightAngle = Math.PI + Vec2D.Util.angle(origin, bottomRight);
         double bottomLeftAngle = Math.PI + Vec2D.Util.angle(origin, bottomLeft);
 
         double rotationAngle = direction.angle();
+
+        // now find the coordinates of the colliding point along the edge of the current grid cell
         double x, y;
 
         if (rotationAngle < 0) {
@@ -333,12 +349,18 @@ public class MiniMap extends GameObject {
         gc.strokeLine(originScene.getX(), originScene.getY(), scenePosition.getX(), scenePosition.getY());
         gc.setLineWidth(1);
 
+        // calculate distance between origin point and colliding point
         double distance = Math.abs(origin.subtract(collision).magnitude());
+
+        // now extend the collision point by an epsilon to continue to the next grid cell
         double nextDistance = rayCast(collision.add(direction.multiply(EPSILON)), direction);
+
+        // if the nextDistance is greater than 0 it means it is not yet colliding. Add to the total distance.
         if (nextDistance > 0) {
             distance += nextDistance;
         }
 
+        // cap the distance to INFINITE_DISTANCE
         return Math.min(distance, INFINITE_DISTANCE);
     }
 

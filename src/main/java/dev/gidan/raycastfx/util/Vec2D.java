@@ -49,6 +49,10 @@ public class Vec2D {
         return new Vec2D(this.x * scalar, this.y * scalar);
     }
 
+    public Vec2D rotateDeg(double angleDegrees) {
+        return rotate(Math.toRadians(angleDegrees));
+    }
+
     public Vec2D rotate(double angleRadians) {
         double cosTheta = Math.cos(angleRadians);
         double sinTheta = Math.sin(angleRadians);
