@@ -1,5 +1,5 @@
 # RaycastFX
-Old school Raycast rendering made in JavaFX.
+Old school Raycast rendering using the JavaFX canvas.
 
 ## To-Do
 - [x] 2D camera
@@ -7,5 +7,6 @@ Old school Raycast rendering made in JavaFX.
 - [x] Show a wall in the grid
 - [ ] Add collisions
 - [x] 2d raycast
-- [x] rendering - in progress
+- [x] rendering
+- [ ] fix fish eye effect
 - [ ] texturing (optional)
