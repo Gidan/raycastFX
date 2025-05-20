@@ -22,4 +22,10 @@ public class Rectangle2DUtil {
                 point.getY() >= rect.getMinY() && point.getY() <= rect.getMaxY();
     }
 
+    public static Rectangle2D rect(Vec2D pos, double size) {
+        return new Rectangle2D(pos.getX(), pos.getY(), size, size);
+    }
+
+
+
 }

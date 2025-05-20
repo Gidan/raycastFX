@@ -43,8 +43,8 @@ public class MiniMap extends GameObject {
     private final Set<Wall> walls;
     private final Canvas canvas;
 
-    private int minimapWidth = INITIAL_MINIMAP_PLANE_WIDTH * scale;
-    private int minimapHeight = INITIAL_MINIMAP_PLANE_HEIGHT * scale;
+    private final int minimapWidth = INITIAL_MINIMAP_PLANE_WIDTH * scale;
+    private final int minimapHeight = INITIAL_MINIMAP_PLANE_HEIGHT * scale;
     private final int gridCellSize = GRID_SIZE * scale;
     private final int centerPointRadius = 4 * scale;
     private boolean drawGrid = true;
@@ -255,9 +255,6 @@ public class MiniMap extends GameObject {
     private static int RAYCAST_COLLIDING = -1;
 
     private double rayCast(Vec2D origin, Vec2D direction) {
-        double originX = origin.getX();
-        double originY = origin.getY();
-
         Rectangle2D miniMapWorldBounds = getMiniMapWorldBounds();
 
         // if the origin point is outside the minimap area it means we are looking outside the minimap.
@@ -270,17 +267,19 @@ public class MiniMap extends GameObject {
         boolean isColliding = walls.stream()
                 // get the position of each wall
                 .map(w -> w.position.multiply(gridCellSize))
-                // filter out all the walls that are not within minimap bounds
-                .filter(wallPosition -> Rectangle2DUtil.containsPoint(miniMapWorldBounds, wallPosition))
                 // create a 2d rect shape for each potential colliding wall
-                .map(w -> new Rectangle2D(w.getX(), w.getY(), gridCellSize, gridCellSize))
+                .map(wallPosition -> Rectangle2DUtil.rect(wallPosition, gridCellSize))
+                // filter out all the walls that are not intersecting the minimap bounds
+                .filter(miniMapWorldBounds::intersects)
                 // check whether any one of those collide with the origin point
                 .anyMatch(wallBounds -> Rectangle2DUtil.containsPoint(wallBounds, origin));
-
 
         if (isColliding) {
             return RAYCAST_COLLIDING;
         }
+
+        double originX = origin.getX();
+        double originY = origin.getY();
 
         // find corner points of the grid cell the origin point is currently located
         double minX = GridUtil.nearestMultipleBelow(originX, gridCellSize);
@@ -297,10 +296,18 @@ public class MiniMap extends GameObject {
         Vec2D bottomLeftScene = worldToScene(bottomLeft);
 
         gc.setFill(Color.BLUE);
-        gc.fillOval(topLeftScene.getX() -2, topLeftScene.getY() -2, 4, 4);
-        gc.fillOval(topRightScene.getX() -2, topRightScene.getY() -2, 4, 4);
-        gc.fillOval(bottomRightScene.getX() -2, bottomRightScene.getY() -2, 4, 4);
-        gc.fillOval(bottomLeftScene.getX() -2, bottomLeftScene.getY() -2, 4, 4);
+        if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, topLeft)) {
+            gc.fillOval(topLeftScene.getX() -2, topLeftScene.getY() -2, 4, 4);
+        }
+        if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, topRight)) {
+            gc.fillOval(topRightScene.getX() -2, topRightScene.getY() -2, 4, 4);
+        }
+        if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, bottomRight)) {
+            gc.fillOval(bottomRightScene.getX() -2, bottomRightScene.getY() -2, 4, 4);
+        }
+        if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, bottomLeft)) {
+            gc.fillOval(bottomLeftScene.getX() -2, bottomLeftScene.getY() -2, 4, 4);
+        }
 
         // find the angles between the origin point and each corner point
         double topRightAngle = -(Math.PI - Vec2D.Util.angle(origin, topRight));
