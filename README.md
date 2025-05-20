@@ -10,3 +10,13 @@ Old school Raycast rendering using the JavaFX canvas.
 - [x] rendering
 - [ ] fix fish eye effect
 - [ ] texturing (optional)
+
+## Compile
+```
+mvn compile
+```
+
+## Run
+```
+mvn javafx:run
+```
