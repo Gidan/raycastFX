@@ -20,3 +20,5 @@ mvn compile
 ```
 mvn javafx:run
 ```
+
+![screenshot.png](screenshots/screenshot.png)
