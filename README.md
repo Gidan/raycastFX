@@ -21,4 +21,16 @@ mvn compile
 mvn javafx:run
 ```
 
+## Controls
+| Key | Effect                   |
+|-----|--------------------------|
+| W   | move forward             |
+| S   | move backward            |
+| A   | strafe left              |
+| D   | strafe right             |
+| Q   | rotate view to the right |
+| E   | rotate view to the left  |
+
+
+## Screenshots
 ![screenshot.png](screenshots/screenshot.png)
