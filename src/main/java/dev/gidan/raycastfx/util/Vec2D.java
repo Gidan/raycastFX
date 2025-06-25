@@ -25,15 +25,6 @@ public class Vec2D {
         return y;
     }
 
-    // Setters
-    public void setX(double x) {
-        this.x = x;
-    }
-
-    public void setY(double y) {
-        this.y = y;
-    }
-
     // Addition
     public Vec2D add(Vec2D other) {
         return new Vec2D(this.x + other.x, this.y + other.y);

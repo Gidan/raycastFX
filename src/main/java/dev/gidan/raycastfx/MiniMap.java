@@ -54,7 +54,7 @@ public class MiniMap extends GameObject {
     Vec2D minimapSize = Vec2D.of(minimapWidth, minimapHeight);
     Vec2D minimapOffset = Vec2D.of(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y);
 
-    private double fovAngle = 120;
+    private double fovAngle = 90;
     private int lines = 120;
 
     public MiniMap(Canvas canvas, Player player, Set<Wall> walls) {
@@ -75,36 +75,42 @@ public class MiniMap extends GameObject {
         // bind camera position to player's position
         this.position = player.position.multiply(scale);
 
-        // Draw minimap background
-        gc.setFill(Color.LIGHTBLUE);
-        gc.fillRect(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y, minimapWidth, minimapHeight);
-
         //double distance = rayCast(position, player.rotation);
         //drawRaycastDistance(distance);
+
+        drawCeiling();
+        drawFloor();
 
         double canvasWidth = canvas.getWidth();
         double canvasHeight = canvas.getHeight();
         double halfCanvasHeight = canvasHeight / 2;
         double lineWidth = canvasWidth / lines;
         double anglePerLine = fovAngle / lines;
-        double startAngle = (fovAngle/2) * -1;
+        double startAngle = (fovAngle / 2) * -1;
 
         double baseHue = Color.RED.getHue();
         double baseSaturation = Color.RED.getSaturation();
 
         for (int ray = 0; ray < lines; ray++) {
             double angleDeltaInDegrees = startAngle + (anglePerLine * ray);
-            double distance = rayCast(position, player.rotation.rotateDeg(angleDeltaInDegrees));
+            Vec2D shootingDirection = player.rotation.rotateDeg(angleDeltaInDegrees);
+            double distance = rayCast(position, shootingDirection);
             if (distance < INFINITE_DISTANCE) {
+                // adjust fish eye. better, but still not perfect. Now I get some sort of reversed fish eye along the edges of the screen.
+                distance = Math.abs(Math.cos(Math.toRadians(angleDeltaInDegrees)) * distance);
                 double x = ray * lineWidth;
                 double lineHeight = (1 / Math.max(distance, 1)) * canvasHeight * 10 ;
-                double halfLineHeight = lineHeight / 2;
                 Color color = Color.hsb(baseHue, baseSaturation, Math.max(0, Math.min(1.0, 1 / distance * 10)));
                 gc.setStroke(color);
                 gc.setLineWidth(lineWidth + 2);
+                double halfLineHeight = lineHeight / 2;
                 gc.strokeLine(x, halfCanvasHeight - halfLineHeight, x, halfCanvasHeight + halfLineHeight);
             }
         }
+
+        // Draw minimap background
+        gc.setFill(Color.LIGHTBLUE);
+        gc.fillRect(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y, minimapWidth, minimapHeight);
 
         drawMouseCoordinates();
         drawPlayerPosition();
@@ -113,6 +119,38 @@ public class MiniMap extends GameObject {
         drawCenterPoint();
         //drawFaceDirection();
         drawPlayerRotationAngle();
+    }
+
+    private void drawCeiling() {
+        double canvasWidth = canvas.getWidth();
+        double canvasHeight = canvas.getHeight();
+
+        Color baseColor = Color.GRAY;
+        double baseHue = baseColor.getHue();
+        double baseSaturation = baseColor.getSaturation();
+
+        int stripes = (int) ((canvasHeight / 2) / 5);
+        for (int stripe = 0; stripe < stripes; stripe++) {
+            Color color = Color.hsb(baseHue, baseSaturation, (1.0 - (double) stripe / stripes) * 0.15);
+            gc.setFill(color);
+            gc.fillRect(.0, stripe * 5, canvasWidth, 5);
+        }
+    }
+
+    private void drawFloor() {
+        double canvasWidth = canvas.getWidth();
+        double canvasHeight = canvas.getHeight();
+
+        Color baseColor = Color.GRAY;
+        double baseHue = baseColor.getHue();
+        double baseSaturation = baseColor.getSaturation();
+
+        int stripes = (int) ((canvasHeight / 2) / 5);
+        for (int stripe = 0; stripe < stripes; stripe++) {
+            Color color = Color.hsb(baseHue, baseSaturation, (1.0 - (double) stripe / stripes) * 0.25);
+            gc.setFill(color);
+            gc.fillRect(.0, canvasHeight - (stripe * 5), canvasWidth, 5);
+        }
     }
 
     private void drawFaceDirection() {
