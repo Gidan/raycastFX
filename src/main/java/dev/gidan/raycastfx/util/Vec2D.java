@@ -1,9 +1,13 @@
 package dev.gidan.raycastfx.util;
 
+import lombok.Getter;
+
 import java.util.Objects;
 
 public class Vec2D {
+    @Getter
     private double x;
+    @Getter
     private double y;
 
     public static Vec2D of(double x, double y) {
@@ -14,15 +18,6 @@ public class Vec2D {
     private Vec2D(double x, double y) {
         this.x = x;
         this.y = y;
-    }
-
-    // Getters
-    public double getX() {
-        return x;
-    }
-
-    public double getY() {
-        return y;
     }
 
     // Addition
@@ -115,8 +110,8 @@ public class Vec2D {
     public static final class Util {
 
         public static double angle(Vec2D v1, Vec2D v2) {
-            double dx = v1.getX() - v2.getX();
-            double dy = v1.getY() - v2.getY();
+            double dx = v1.x - v2.x;
+            double dy = v1.y - v2.y;
             return Math.atan2(dy, dx);
         }
 

@@ -2,26 +2,23 @@ package dev.gidan.raycastfx;
 
 import dev.gidan.raycastfx.prefabs.Player;
 import dev.gidan.raycastfx.prefabs.Wall;
-import dev.gidan.raycastfx.util.GridUtil;
-import dev.gidan.raycastfx.util.Rectangle2DUtil;
-import dev.gidan.raycastfx.util.Trig;
-import dev.gidan.raycastfx.util.Vec2D;
+import dev.gidan.raycastfx.util.*;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
  * This class is responsible to draw the minimap somewhere on the canvas.
  * It decides the position, the scale and the appearance of the minimap.
  */
+@Slf4j
 public class MiniMap extends GameObject {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(MiniMap.class);
 
     private static final double INITIAL_CAMERA_POSITION_X = 0;
     private static final double INITIAL_CAMERA_POSITION_Y = 0;
@@ -35,7 +32,6 @@ public class MiniMap extends GameObject {
     private static final int GRID_SIZE = 20;
 
     public static final double EPSILON = 0.03;
-    public static final double INFINITE_DISTANCE = 1_000_000;
 
     private final int scale = 1;
     private final GraphicsContext gc;
@@ -75,9 +71,6 @@ public class MiniMap extends GameObject {
         // bind camera position to player's position
         this.position = player.position.multiply(scale);
 
-        //double distance = rayCast(position, player.rotation);
-        //drawRaycastDistance(distance);
-
         drawCeiling();
         drawFloor();
 
@@ -91,15 +84,19 @@ public class MiniMap extends GameObject {
         double baseHue = Color.RED.getHue();
         double baseSaturation = Color.RED.getSaturation();
 
+        List<Ray> rays = new ArrayList<>();
+
         for (int ray = 0; ray < lines; ray++) {
             double angleDeltaInDegrees = startAngle + (anglePerLine * ray);
             Vec2D shootingDirection = player.rotation.rotateDeg(angleDeltaInDegrees);
-            double distance = rayCast(position, shootingDirection);
-            if (distance < INFINITE_DISTANCE) {
+            Ray rayResult = rayCast(new Ray(Ray.Status.SHOOTING, position, shootingDirection, position));
+            rays.add(rayResult);
+            double distance = rayResult.distance();
+            if (distance < Ray.INFINITE_DISTANCE) {
                 // adjust fish eye. better, but still not perfect. Now I get some sort of reversed fish eye along the edges of the screen.
                 distance = Math.abs(Math.cos(Math.toRadians(angleDeltaInDegrees)) * distance);
                 double x = ray * lineWidth;
-                double lineHeight = (1 / Math.max(distance, 1)) * canvasHeight * 10 ;
+                double lineHeight = (1 / Math.max(distance, 1)) * canvasHeight * 10;
                 Color color = Color.hsb(baseHue, baseSaturation, Math.max(0, Math.min(1.0, 1 / distance * 10)));
                 gc.setStroke(color);
                 gc.setLineWidth(lineWidth + 2);
@@ -108,17 +105,50 @@ public class MiniMap extends GameObject {
             }
         }
 
-        // Draw minimap background
-        gc.setFill(Color.LIGHTBLUE);
-        gc.fillRect(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y, minimapWidth, minimapHeight);
-
+        drawMiniMapBackground();
         drawMouseCoordinates();
         drawPlayerPosition();
         drawWalls();
+        drawRays(rays);
         drawGrid();
         drawCenterPoint();
         //drawFaceDirection();
         drawPlayerRotationAngle();
+    }
+
+    private void drawRays(List<Ray> rays) {
+        rays.forEach(ray -> {
+            Vec2D originScene = worldToScene(ray.origin());
+            double collisionX;
+            double collisionY;
+
+            if (ray.status() == Ray.Status.INFINITE) {
+                Vec2D intersectionWithMiniMapEdges = findCollisionPointAlongCellBorders(originScene, getMiniMapSceneBounds(), ray);
+                collisionX = intersectionWithMiniMapEdges.getX();
+                collisionY = intersectionWithMiniMapEdges.getY();
+            } else {
+                Vec2D collision = worldToScene(ray.collisionPoint());
+                collisionX = collision.getX();
+                collisionY = collision.getY();
+            }
+
+            gc.setStroke(Color.RED);
+            gc.setLineWidth(2);
+            gc.strokeLine(originScene.getX(), originScene.getY(),
+                    collisionX,
+                    collisionY
+            );
+            gc.setLineWidth(1);
+
+            gc.setFill(Color.CYAN);
+            gc.fillOval(collisionX - 2, collisionY - 2, 4, 4);
+        });
+
+    }
+
+    private void drawMiniMapBackground() {
+        gc.setFill(Color.LIGHTBLUE);
+        gc.fillRect(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y, minimapWidth, minimapHeight);
     }
 
     private void drawCeiling() {
@@ -218,7 +248,7 @@ public class MiniMap extends GameObject {
         int worldX = (int) worldMousePosition.getX();
         int worldY = (int) worldMousePosition.getY();
 
-        gc.setFill(Color.RED);
+        gc.setFill(Color.WHITE);
         gc.setFont(Fonts.TINY_NORMAL);
         gc.fillText(String.format("mouse scene %d - %d", mouseX, mouseY),
                 MINIMAP_PROJECTION_X,
@@ -233,7 +263,7 @@ public class MiniMap extends GameObject {
     private void drawPlayerPosition() {
         Vec2D playerPosition = this.position;
         Vec2D playerScenePosition = worldToScene(playerPosition);
-        gc.setFill(Color.RED);
+        gc.setFill(Color.WHITE);
         gc.setFont(Fonts.TINY_NORMAL);
         gc.fillText(String.format("player world x:%.02f y:%.02f", playerPosition.getX(), playerPosition.getY()),
                 MINIMAP_PROJECTION_X,
@@ -248,7 +278,7 @@ public class MiniMap extends GameObject {
     private void drawPlayerRotationAngle() {
         Vec2D playerRotation = player.rotation;
         double rotationAngle = playerRotation.angle();
-        gc.setFill(Color.RED);
+        gc.setFill(Color.WHITE);
         gc.setFont(Fonts.TINY_NORMAL);
         gc.fillText(String.format("player rot angle rad:%.02f deg:%.02f", rotationAngle, Math.toDegrees(rotationAngle)),
                 MINIMAP_PROJECTION_X,
@@ -271,6 +301,10 @@ public class MiniMap extends GameObject {
         return new Rectangle2D(minWorldX, minWorldY, minimapWidth, minimapHeight);
     }
 
+    private Rectangle2D getMiniMapSceneBounds() {
+        return new Rectangle2D(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y, minimapWidth, minimapHeight);
+    }
+
     private void drawWalls() {
         Rectangle2D miniMapArea = getMiniMapWorldBounds();
         gc.setFill(Color.DARKRED);
@@ -290,16 +324,17 @@ public class MiniMap extends GameObject {
         });
     }
 
-    private static int RAYCAST_COLLIDING = -1;
+    private Ray rayCast(Ray ray) {
+        Vec2D origin = ray.origin();
+        Vec2D direction = ray.direction();
 
-    private double rayCast(Vec2D origin, Vec2D direction) {
         Rectangle2D miniMapWorldBounds = getMiniMapWorldBounds();
 
         // if the origin point is outside the minimap area it means we are looking outside the minimap.
         // so we are not colliding with any wall within the minimap area.
         // in this case let's pretend we are looking at infinite distance.
         if (!Rectangle2DUtil.containsPoint(miniMapWorldBounds, origin)) {
-            return INFINITE_DISTANCE;
+            return ray.withStatus(Ray.Status.INFINITE);
         }
 
         boolean isColliding = walls.stream()
@@ -313,7 +348,7 @@ public class MiniMap extends GameObject {
                 .anyMatch(wallBounds -> Rectangle2DUtil.containsPoint(wallBounds, origin));
 
         if (isColliding) {
-            return RAYCAST_COLLIDING;
+            return ray.withStatus(Ray.Status.COLLIDING);
         }
 
         double originX = origin.getX();
@@ -335,17 +370,40 @@ public class MiniMap extends GameObject {
 
         gc.setFill(Color.BLUE);
         if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, topLeft)) {
-            gc.fillOval(topLeftScene.getX() -2, topLeftScene.getY() -2, 4, 4);
+            gc.fillOval(topLeftScene.getX() - 2, topLeftScene.getY() - 2, 4, 4);
         }
         if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, topRight)) {
-            gc.fillOval(topRightScene.getX() -2, topRightScene.getY() -2, 4, 4);
+            gc.fillOval(topRightScene.getX() - 2, topRightScene.getY() - 2, 4, 4);
         }
         if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, bottomRight)) {
-            gc.fillOval(bottomRightScene.getX() -2, bottomRightScene.getY() -2, 4, 4);
+            gc.fillOval(bottomRightScene.getX() - 2, bottomRightScene.getY() - 2, 4, 4);
         }
         if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, bottomLeft)) {
-            gc.fillOval(bottomLeftScene.getX() -2, bottomLeftScene.getY() -2, 4, 4);
+            gc.fillOval(bottomLeftScene.getX() - 2, bottomLeftScene.getY() - 2, 4, 4);
         }
+
+        Rectangle2D cell = new Rectangle2D(minX, minY, maxX - minX, maxY - minY);
+        Vec2D collision = findCollisionPointAlongCellBorders(origin, cell, ray);
+
+        // now extend the collision point by an epsilon to continue to the next grid cell
+        Ray nextRay = rayCast(ray.withOrigin(collision.add(direction.multiply(EPSILON))).withCollisionPoint(collision));
+        return ray.withStatus(nextRay.status()).withCollisionPoint(nextRay.collisionPoint());
+    }
+
+    private Vec2D findCollisionPointAlongCellBorders(Vec2D origin, Rectangle2D cell, Ray ray) {
+        double originX = origin.getX();
+        double originY = origin.getY();
+        Vec2D direction = ray.direction();
+
+        double minX = cell.getMinX();
+        double maxX = cell.getMaxX();
+        double minY = cell.getMinY();
+        double maxY = cell.getMaxY();
+
+        Vec2D topLeft = Vec2D.of(minX, minY);
+        Vec2D topRight = Vec2D.of(maxX, minY);
+        Vec2D bottomRight = Vec2D.of(maxX, maxY);
+        Vec2D bottomLeft = Vec2D.of(minX, maxY);
 
         // find the angles between the origin point and each corner point
         double topRightAngle = -(Math.PI - Vec2D.Util.angle(origin, topRight));
@@ -382,31 +440,7 @@ public class MiniMap extends GameObject {
             }
         }
 
-        Vec2D collision = Vec2D.of(x, y);
-        Vec2D scenePosition = worldToScene(collision);
-        Vec2D originScene = worldToScene(origin);
-
-        gc.setFill(Color.RED);
-        gc.fillOval(scenePosition.getX() -3, scenePosition.getY() -3, 6, 6);
-
-        gc.setStroke(Color.RED);
-        gc.setLineWidth(2);
-        gc.strokeLine(originScene.getX(), originScene.getY(), scenePosition.getX(), scenePosition.getY());
-        gc.setLineWidth(1);
-
-        // calculate distance between origin point and colliding point
-        double distance = Math.abs(origin.subtract(collision).magnitude());
-
-        // now extend the collision point by an epsilon to continue to the next grid cell
-        double nextDistance = rayCast(collision.add(direction.multiply(EPSILON)), direction);
-
-        // if the nextDistance is greater than 0 it means it is not yet colliding. Add to the total distance.
-        if (nextDistance > 0) {
-            distance += nextDistance;
-        }
-
-        // cap the distance to INFINITE_DISTANCE
-        return Math.min(distance, INFINITE_DISTANCE);
+        return Vec2D.of(x, y);
     }
 
     private Vec2D worldToScene(Vec2D world) {
@@ -420,7 +454,6 @@ public class MiniMap extends GameObject {
                 .add(scene)
                 .subtract(minimapSize.multiply(0.5).add(minimapOffset));
     }
-
 
 
 }

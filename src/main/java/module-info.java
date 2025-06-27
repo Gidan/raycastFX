@@ -1,6 +1,8 @@
 module dev.gidan.raycastfx {
     requires javafx.controls;
     requires javafx.fxml;
+    requires static lombok;
+    requires ch.qos.logback.classic;
     requires org.slf4j;
 
 
