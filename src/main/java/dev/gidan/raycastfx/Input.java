@@ -4,6 +4,7 @@ import dev.gidan.raycastfx.util.Vec2D;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +16,9 @@ public class Input {
     private static final Logger LOGGER = LoggerFactory.getLogger(Input.class);
 
     private final Map<KeyCode, Integer> states = new HashMap<>();
+    @Getter
     private double mouseX;
+    @Getter
     private double mouseY;
 
     private static Input instance;
@@ -50,14 +53,6 @@ public class Input {
 
     public boolean isPressed(KeyCode keyCode) {
         return states.containsKey(keyCode) && states.get(keyCode) == 1;
-    }
-
-    public double getMouseX() {
-        return mouseX;
-    }
-
-    public double getMouseY() {
-        return mouseY;
     }
 
     public Vec2D mouse() {

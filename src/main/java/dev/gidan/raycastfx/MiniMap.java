@@ -119,15 +119,15 @@ public class MiniMap extends GameObject {
     private void drawRays(List<Ray> rays) {
         rays.forEach(ray -> {
             Vec2D originScene = worldToScene(ray.origin());
+            Vec2D collision = worldToScene(ray.collisionPoint());
             double collisionX;
             double collisionY;
 
-            if (ray.status() == Ray.Status.INFINITE) {
+            if (ray.status() == Ray.Status.INFINITE || !Rectangle2DUtil.containsPoint(getMiniMapSceneBounds(), collision)) {
                 Vec2D intersectionWithMiniMapEdges = findCollisionPointAlongCellBorders(originScene, getMiniMapSceneBounds(), ray);
                 collisionX = intersectionWithMiniMapEdges.getX();
                 collisionY = intersectionWithMiniMapEdges.getY();
             } else {
-                Vec2D collision = worldToScene(ray.collisionPoint());
                 collisionX = collision.getX();
                 collisionY = collision.getY();
             }
@@ -325,69 +325,60 @@ public class MiniMap extends GameObject {
     }
 
     private Ray rayCast(Ray ray) {
-        Vec2D origin = ray.origin();
-        Vec2D direction = ray.direction();
-
         Rectangle2D miniMapWorldBounds = getMiniMapWorldBounds();
+        Ray currentRay = ray;
+        Ray resultRay = ray;
 
-        // if the origin point is outside the minimap area it means we are looking outside the minimap.
-        // so we are not colliding with any wall within the minimap area.
-        // in this case let's pretend we are looking at infinite distance.
-        if (!Rectangle2DUtil.containsPoint(miniMapWorldBounds, origin)) {
-            return ray.withStatus(Ray.Status.INFINITE);
+        while (currentRay.status() == Ray.Status.SHOOTING) {
+            Vec2D origin = currentRay.origin();
+            Vec2D direction = currentRay.direction();
+
+            // if the origin point is outside the minimap area it means we are looking outside the minimap.
+            // so we are not colliding with any wall within the minimap area.
+            // in this case let's pretend we are looking at infinite distance.
+//            if (!Rectangle2DUtil.containsPoint(miniMapWorldBounds, origin)) {
+//                resultRay = resultRay.withStatus(Ray.Status.INFINITE);
+//                break;
+//            }
+
+            if (resultRay.distance() > 200) {
+                resultRay = resultRay.withStatus(Ray.Status.INFINITE);
+                break;
+            }
+
+            boolean isColliding = walls.stream()
+                    // get the position of each wall
+                    .map(w -> w.position.multiply(gridCellSize))
+                    // create a 2d rect shape for each potential colliding wall
+                    .map(wallPosition -> Rectangle2DUtil.rect(wallPosition, gridCellSize))
+                    // filter out all the walls that are not intersecting the minimap bounds
+                    //.filter(miniMapWorldBounds::intersects)
+                    // check whether any one of those collide with the origin point
+                    .anyMatch(wallBounds -> Rectangle2DUtil.containsPoint(wallBounds, origin));
+
+            if (isColliding) {
+                resultRay = resultRay.withStatus(Ray.Status.COLLIDING);
+                break;
+            }
+
+            double originX = origin.getX();
+            double originY = origin.getY();
+
+            // find corner points of the grid cell the origin point is currently located
+            double minX = GridUtil.nearestMultipleBelow(originX, gridCellSize);
+            double minY = GridUtil.nearestMultipleBelow(originY, gridCellSize);
+            double maxX = GridUtil.nearestMultipleAbove(originX, gridCellSize);
+            double maxY = GridUtil.nearestMultipleAbove(originY, gridCellSize);
+
+            Rectangle2D cell = new Rectangle2D(minX, minY, maxX - minX, maxY - minY);
+            Vec2D collision = findCollisionPointAlongCellBorders(origin, cell, ray);
+
+            // now extend the collision point by an epsilon to continue to the next grid cell
+            currentRay = currentRay.withOrigin(collision.add(direction.multiply(EPSILON))).withCollisionPoint(collision);
+            resultRay = ray.withStatus(currentRay.status()).withCollisionPoint(currentRay.collisionPoint());
         }
 
-        boolean isColliding = walls.stream()
-                // get the position of each wall
-                .map(w -> w.position.multiply(gridCellSize))
-                // create a 2d rect shape for each potential colliding wall
-                .map(wallPosition -> Rectangle2DUtil.rect(wallPosition, gridCellSize))
-                // filter out all the walls that are not intersecting the minimap bounds
-                .filter(miniMapWorldBounds::intersects)
-                // check whether any one of those collide with the origin point
-                .anyMatch(wallBounds -> Rectangle2DUtil.containsPoint(wallBounds, origin));
-
-        if (isColliding) {
-            return ray.withStatus(Ray.Status.COLLIDING);
-        }
-
-        double originX = origin.getX();
-        double originY = origin.getY();
-
-        // find corner points of the grid cell the origin point is currently located
-        double minX = GridUtil.nearestMultipleBelow(originX, gridCellSize);
-        double minY = GridUtil.nearestMultipleBelow(originY, gridCellSize);
-        double maxX = GridUtil.nearestMultipleAbove(originX, gridCellSize);
-        double maxY = GridUtil.nearestMultipleAbove(originY, gridCellSize);
-        Vec2D topLeft = Vec2D.of(minX, minY);
-        Vec2D topRight = Vec2D.of(maxX, minY);
-        Vec2D bottomRight = Vec2D.of(maxX, maxY);
-        Vec2D bottomLeft = Vec2D.of(minX, maxY);
-        Vec2D topLeftScene = worldToScene(topLeft);
-        Vec2D topRightScene = worldToScene(topRight);
-        Vec2D bottomRightScene = worldToScene(bottomRight);
-        Vec2D bottomLeftScene = worldToScene(bottomLeft);
-
-        gc.setFill(Color.BLUE);
-        if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, topLeft)) {
-            gc.fillOval(topLeftScene.getX() - 2, topLeftScene.getY() - 2, 4, 4);
-        }
-        if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, topRight)) {
-            gc.fillOval(topRightScene.getX() - 2, topRightScene.getY() - 2, 4, 4);
-        }
-        if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, bottomRight)) {
-            gc.fillOval(bottomRightScene.getX() - 2, bottomRightScene.getY() - 2, 4, 4);
-        }
-        if (Rectangle2DUtil.containsPoint(miniMapWorldBounds, bottomLeft)) {
-            gc.fillOval(bottomLeftScene.getX() - 2, bottomLeftScene.getY() - 2, 4, 4);
-        }
-
-        Rectangle2D cell = new Rectangle2D(minX, minY, maxX - minX, maxY - minY);
-        Vec2D collision = findCollisionPointAlongCellBorders(origin, cell, ray);
-
-        // now extend the collision point by an epsilon to continue to the next grid cell
-        Ray nextRay = rayCast(ray.withOrigin(collision.add(direction.multiply(EPSILON))).withCollisionPoint(collision));
-        return ray.withStatus(nextRay.status()).withCollisionPoint(nextRay.collisionPoint());
+        return resultRay;
     }
 
     private Vec2D findCollisionPointAlongCellBorders(Vec2D origin, Rectangle2D cell, Ray ray) {

@@ -10,10 +10,16 @@ public class Player extends GameObject {
     private static final double INITIAL_PLAYER_POSITION_X = 0;
     private static final double INITIAL_PLAYER_POSITION_Y = 0;
 
+    public static final Vec2D DEFAULT_POSITION = Vec2D.of(INITIAL_PLAYER_POSITION_X, INITIAL_PLAYER_POSITION_Y);
+
     private double speed = 20.0;
 
     public Player() {
         super(Vec2D.of(INITIAL_PLAYER_POSITION_X, INITIAL_PLAYER_POSITION_Y));
+    }
+
+    public Player(Vec2D position) {
+        super(position);
     }
 
     @Override

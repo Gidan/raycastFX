@@ -1,7 +1,9 @@
 package dev.gidan.raycastfx;
 
 import dev.gidan.raycastfx.util.Vec2D;
+import lombok.Getter;
 
+@Getter
 public class GameObject {
 
     protected Vec2D position;
@@ -15,15 +17,6 @@ public class GameObject {
     public void update(double deltaTimeInMillis) {
 
     }
-
-    public Vec2D getPosition() {
-        return position;
-    }
-
-    public Vec2D getRotation() {
-        return rotation;
-    }
-
 
 
 }
