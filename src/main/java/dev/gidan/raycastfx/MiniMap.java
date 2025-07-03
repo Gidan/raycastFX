@@ -52,6 +52,9 @@ public class MiniMap extends GameObject {
     Vec2D minimapSize = Vec2D.of(minimapWidth, minimapHeight);
     Vec2D minimapOffset = Vec2D.of(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y);
 
+    private static final double WALK_MAX_Y_OFFSET = 5.0;
+    private double yOffset = 0;
+
     public MiniMap(Canvas canvas, Player player, Set<Wall> walls) {
         super(Vec2D.of(INITIAL_CAMERA_POSITION_X, INITIAL_CAMERA_POSITION_Y));
         gc = canvas.getGraphicsContext2D();
@@ -69,6 +72,10 @@ public class MiniMap extends GameObject {
     public void update(double deltaTimeMillis) {
         // bind camera position to player's position
         this.position = player.position.multiply(scale);
+
+        if (player.getStatus() == Player.Status.WALKING) {
+            yOffset = Math.sin(Math.toRadians(player.getDistance())) * WALK_MAX_Y_OFFSET;
+        }
 
         drawCeilingAndFloor();
 
@@ -99,7 +106,7 @@ public class MiniMap extends GameObject {
                 gc.setStroke(color);
                 gc.setLineWidth(lineWidth + 2);
                 double halfLineHeight = lineHeight / 2;
-                gc.strokeLine(x, halfCanvasHeight - halfLineHeight, x, halfCanvasHeight + halfLineHeight);
+                gc.strokeLine(x, halfCanvasHeight - halfLineHeight + yOffset, x, halfCanvasHeight + halfLineHeight + yOffset);
             }
         }
 
@@ -154,14 +161,23 @@ public class MiniMap extends GameObject {
         double canvasHeight = canvas.getHeight();
 
         Color baseColor = Color.GRAY;
+        double baseHue = baseColor.getHue();
+        double baseSaturation = baseColor.getSaturation();
 
-        int stripes = (int) ((canvasHeight / 2) / 5);
-        for (int stripe = 0; stripe < stripes; stripe++) {
-            Color ceilingColor = Color.hsb(baseColor.getHue(), baseColor.getSaturation(), (1.0 - (double) stripe / stripes) * 0.15);
+        int stripeHeight = 5;
+
+        double ceilingHeight = canvasHeight / 2 + yOffset;
+        double floorHeight = canvasHeight - ceilingHeight;
+        int ceilingStripes = (int) (ceilingHeight / stripeHeight);
+        int floorStripes = (int) (floorHeight / stripeHeight);
+        for (int stripe = 0; stripe < ceilingStripes; stripe++) {
+            Color ceilingColor = Color.hsb(baseHue, baseSaturation, (1.0 - (double) stripe / ceilingStripes) * 0.15);
             gc.setFill(ceilingColor);
             gc.fillRect(.0, stripe * 5, canvasWidth, 5);
+        }
 
-            Color floorColor = Color.hsb(baseColor.getHue(), baseColor.getSaturation(), (1.0 - (double) stripe / stripes) * 0.25);
+        for (int stripe = 0; stripe < floorStripes; stripe++) {
+            Color floorColor = Color.hsb(baseHue, baseSaturation, (1.0 - (double) stripe / floorStripes) * 0.25);
             gc.setFill(floorColor);
             gc.fillRect(.0, canvasHeight - (stripe * 5), canvasWidth, 5);
         }
@@ -311,7 +327,7 @@ public class MiniMap extends GameObject {
             // if not colliding yet, but distance is greater than threshold, we'll assume that,
             // even if at some point it will collide with something,
             // we will not be able to see it.
-            if (resultRay.distance() > Ray.INFINITE_DISTANCE) {
+            if (resultRay.distance() >= Ray.INFINITE_DISTANCE) {
                 resultRay = resultRay.withStatus(Ray.Status.INFINITE);
                 break;
             }

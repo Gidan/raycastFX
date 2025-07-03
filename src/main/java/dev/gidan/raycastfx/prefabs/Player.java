@@ -3,16 +3,29 @@ package dev.gidan.raycastfx.prefabs;
 import dev.gidan.raycastfx.GameObject;
 import dev.gidan.raycastfx.Input;
 import dev.gidan.raycastfx.util.Vec2D;
-import javafx.scene.input.KeyCode;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class Player extends GameObject {
+
+    public enum Status {
+        IDLE, WALKING
+    }
 
     private static final double INITIAL_PLAYER_POSITION_X = 0;
     private static final double INITIAL_PLAYER_POSITION_Y = 0;
 
     public static final Vec2D DEFAULT_POSITION = Vec2D.of(INITIAL_PLAYER_POSITION_X, INITIAL_PLAYER_POSITION_Y);
 
-    private double speed = 20.0;
+    private static final double MAX_SPEED = 20.0;
+    private double speed = 0;
+
+    @Getter
+    private Status status;
+
+    @Getter
+    private double distance;
 
     public Player() {
         super(Vec2D.of(INITIAL_PLAYER_POSITION_X, INITIAL_PLAYER_POSITION_Y));
@@ -26,26 +39,43 @@ public class Player extends GameObject {
     public void update(double deltaTimeMillis) {
         updateWorldPosition(deltaTimeMillis);
         updateFaceDirection();
+        updateStatus();
     }
 
+    private void updateStatus() {
+        status = speed > 0 ? Status.WALKING : Status.IDLE;
+        if (status == Status.WALKING) {
+            distance = (distance + speed * 0.2) % 360;
+        }
+    }
+
+    Vec2D previousDirection;
     private void updateWorldPosition(double deltaTime) {
         Input input = Input.getInstance();
         Vec2D direction = Vec2D.ZERO;
-        if (input.isPressed(KeyCode.W)) {
+
+        if (input.isMovingForward()) {
             direction = direction.add(rotation);
         }
-        if (input.isPressed(KeyCode.S)) {
+        if (input.isMovingBackward()) {
             direction = direction.add(rotation.rotate(Math.PI));
         }
-        if (input.isPressed(KeyCode.A)) {
+        if (input.isStrafeLeft()) {
             direction = direction.add(rotation.rotate(Math.PI / 2 * -1));
         }
-        if (input.isPressed(KeyCode.D)) {
+        if (input.isStrafeRight()) {
             direction = direction.add(rotation.rotate(Math.PI / 2));
         }
 
         if (direction.magnitude() > 0) {
-            position = position.add(direction.multiply(deltaTime * speed));
+            previousDirection = direction;
+            speed = Math.min(speed + 0.3, MAX_SPEED);
+        } else {
+            speed = Math.max(speed - 0.4, 0.0);
+        }
+
+        if (speed > 0) {
+            position = position.add(previousDirection.multiply(deltaTime * speed));
         }
     }
 
@@ -54,10 +84,10 @@ public class Player extends GameObject {
 
         double angle = Math.toRadians(1);
 
-        if (input.isPressed(KeyCode.E)) {
+        if (input.isTurningRight()) {
             rotation = rotation.rotate(angle);
         }
-        if (input.isPressed(KeyCode.Q)) {
+        if (input.isTurningLeft()) {
             rotation = rotation.rotate(-angle);
         }
     }
