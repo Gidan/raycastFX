@@ -4,7 +4,7 @@ import lombok.With;
 
 public record Ray(@With Status status, @With Vec2D origin, Vec2D direction, @With Vec2D collisionPoint) {
 
-    public static final double INFINITE_DISTANCE = 1_000_000;
+    public static final double INFINITE_DISTANCE = 200;
 
     public enum Status {
         SHOOTING, COLLIDING, INFINITE

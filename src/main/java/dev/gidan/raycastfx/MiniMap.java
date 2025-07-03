@@ -33,6 +33,9 @@ public class MiniMap extends GameObject {
 
     public static final double EPSILON = 0.03;
 
+    private static final double FOV_ANGLE = 90;
+    private static final int LINES = 120;
+
     private final int scale = 1;
     private final GraphicsContext gc;
     private final Player player;
@@ -42,16 +45,12 @@ public class MiniMap extends GameObject {
     private final int minimapWidth = INITIAL_MINIMAP_PLANE_WIDTH * scale;
     private final int minimapHeight = INITIAL_MINIMAP_PLANE_HEIGHT * scale;
     private final int gridCellSize = GRID_SIZE * scale;
-    private final int centerPointRadius = 4 * scale;
     private boolean drawGrid = true;
 
     int minimapPlaneHalfWidth = minimapWidth / 2;
     int minimapPlaneHalfHeight = minimapHeight / 2;
     Vec2D minimapSize = Vec2D.of(minimapWidth, minimapHeight);
     Vec2D minimapOffset = Vec2D.of(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y);
-
-    private double fovAngle = 90;
-    private int lines = 120;
 
     public MiniMap(Canvas canvas, Player player, Set<Wall> walls) {
         super(Vec2D.of(INITIAL_CAMERA_POSITION_X, INITIAL_CAMERA_POSITION_Y));
@@ -71,22 +70,21 @@ public class MiniMap extends GameObject {
         // bind camera position to player's position
         this.position = player.position.multiply(scale);
 
-        drawCeiling();
-        drawFloor();
+        drawCeilingAndFloor();
 
         double canvasWidth = canvas.getWidth();
         double canvasHeight = canvas.getHeight();
         double halfCanvasHeight = canvasHeight / 2;
-        double lineWidth = canvasWidth / lines;
-        double anglePerLine = fovAngle / lines;
-        double startAngle = (fovAngle / 2) * -1;
+        double lineWidth = canvasWidth / LINES;
+        double anglePerLine = FOV_ANGLE / LINES;
+        double startAngle = (FOV_ANGLE / 2) * -1;
 
         double baseHue = Color.RED.getHue();
         double baseSaturation = Color.RED.getSaturation();
 
         List<Ray> rays = new ArrayList<>();
 
-        for (int ray = 0; ray < lines; ray++) {
+        for (int ray = 0; ray < LINES; ray++) {
             double angleDeltaInDegrees = startAngle + (anglePerLine * ray);
             Vec2D shootingDirection = player.rotation.rotateDeg(angleDeltaInDegrees);
             Ray rayResult = rayCast(new Ray(Ray.Status.SHOOTING, position, shootingDirection, position));
@@ -111,8 +109,8 @@ public class MiniMap extends GameObject {
         drawWalls();
         drawRays(rays);
         drawGrid();
+        drawFaceDirection();
         drawCenterPoint();
-        //drawFaceDirection();
         drawPlayerRotationAngle();
     }
 
@@ -151,40 +149,26 @@ public class MiniMap extends GameObject {
         gc.fillRect(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y, minimapWidth, minimapHeight);
     }
 
-    private void drawCeiling() {
+    private void drawCeilingAndFloor() {
         double canvasWidth = canvas.getWidth();
         double canvasHeight = canvas.getHeight();
 
         Color baseColor = Color.GRAY;
-        double baseHue = baseColor.getHue();
-        double baseSaturation = baseColor.getSaturation();
 
         int stripes = (int) ((canvasHeight / 2) / 5);
         for (int stripe = 0; stripe < stripes; stripe++) {
-            Color color = Color.hsb(baseHue, baseSaturation, (1.0 - (double) stripe / stripes) * 0.15);
-            gc.setFill(color);
+            Color ceilingColor = Color.hsb(baseColor.getHue(), baseColor.getSaturation(), (1.0 - (double) stripe / stripes) * 0.15);
+            gc.setFill(ceilingColor);
             gc.fillRect(.0, stripe * 5, canvasWidth, 5);
-        }
-    }
 
-    private void drawFloor() {
-        double canvasWidth = canvas.getWidth();
-        double canvasHeight = canvas.getHeight();
-
-        Color baseColor = Color.GRAY;
-        double baseHue = baseColor.getHue();
-        double baseSaturation = baseColor.getSaturation();
-
-        int stripes = (int) ((canvasHeight / 2) / 5);
-        for (int stripe = 0; stripe < stripes; stripe++) {
-            Color color = Color.hsb(baseHue, baseSaturation, (1.0 - (double) stripe / stripes) * 0.25);
-            gc.setFill(color);
+            Color floorColor = Color.hsb(baseColor.getHue(), baseColor.getSaturation(), (1.0 - (double) stripe / stripes) * 0.25);
+            gc.setFill(floorColor);
             gc.fillRect(.0, canvasHeight - (stripe * 5), canvasWidth, 5);
         }
     }
 
     private void drawFaceDirection() {
-        gc.setStroke(Color.RED);
+        gc.setStroke(Color.BLUE);
 
         // the player is always centered in the minimap.
         // So x, y can just be the center of the minimap plus the minimap offset.
@@ -199,6 +183,7 @@ public class MiniMap extends GameObject {
     private void drawCenterPoint() {
         gc.setFill(Color.RED);
 
+        int centerPointRadius = 4 * scale;
         double x = MINIMAP_PROJECTION_X + minimapPlaneHalfWidth - centerPointRadius;
         double y = MINIMAP_PROJECTION_Y + minimapPlaneHalfHeight - centerPointRadius;
         double diameter = centerPointRadius * 2;
@@ -286,15 +271,6 @@ public class MiniMap extends GameObject {
         );
     }
 
-    private void drawRaycastDistance(double distance) {
-        gc.setFill(Color.RED);
-        gc.setFont(Fonts.TINY_NORMAL);
-        gc.fillText(String.format("raycast distance:%.02f", distance),
-                MINIMAP_PROJECTION_X,
-                MINIMAP_PROJECTION_Y + minimapHeight + 90
-        );
-    }
-
     private Rectangle2D getMiniMapWorldBounds() {
         int minWorldX = (int) (position.getX()) - minimapPlaneHalfWidth;
         int minWorldY = (int) (position.getY()) - minimapPlaneHalfHeight;
@@ -325,7 +301,6 @@ public class MiniMap extends GameObject {
     }
 
     private Ray rayCast(Ray ray) {
-        Rectangle2D miniMapWorldBounds = getMiniMapWorldBounds();
         Ray currentRay = ray;
         Ray resultRay = ray;
 
@@ -333,15 +308,10 @@ public class MiniMap extends GameObject {
             Vec2D origin = currentRay.origin();
             Vec2D direction = currentRay.direction();
 
-            // if the origin point is outside the minimap area it means we are looking outside the minimap.
-            // so we are not colliding with any wall within the minimap area.
-            // in this case let's pretend we are looking at infinite distance.
-//            if (!Rectangle2DUtil.containsPoint(miniMapWorldBounds, origin)) {
-//                resultRay = resultRay.withStatus(Ray.Status.INFINITE);
-//                break;
-//            }
-
-            if (resultRay.distance() > 200) {
+            // if not colliding yet, but distance is greater than threshold, we'll assume that,
+            // even if at some point it will collide with something,
+            // we will not be able to see it.
+            if (resultRay.distance() > Ray.INFINITE_DISTANCE) {
                 resultRay = resultRay.withStatus(Ray.Status.INFINITE);
                 break;
             }
