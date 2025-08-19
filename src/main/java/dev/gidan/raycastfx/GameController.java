@@ -1,24 +1,13 @@
 package dev.gidan.raycastfx;
 
-import dev.gidan.raycastfx.prefabs.Player;
-import dev.gidan.raycastfx.prefabs.Wall;
 import dev.gidan.raycastfx.util.Delta;
 import dev.gidan.raycastfx.util.FPSCount;
-import dev.gidan.raycastfx.util.Vec2D;
 import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.Image;
-import javafx.scene.image.PixelReader;
 import javafx.scene.paint.Color;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
 
 @Slf4j
 public class GameController {
