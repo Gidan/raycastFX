@@ -1,11 +1,15 @@
 # RaycastFX
 Old school Raycast rendering using the JavaFX canvas.
-https://www.youtube.com/watch?v=rKYuGVl0Swk
+
+## Video Demo
+Please find a short video demonstration in my
+[YouTube channel](https://www.youtube.com/watch?v=rKYuGVl0Swk).
 
 ## To-Do
 - [x] 2D camera
 - [x] Player 
 - [x] Show a wall in the grid
+- [x] Load map from an external image file
 - [ ] Add collisions
 - [x] 2d raycast
 - [x] rendering
