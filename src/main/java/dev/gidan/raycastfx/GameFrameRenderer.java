@@ -122,7 +122,7 @@ public class GameFrameRenderer {
 
             boolean isColliding = gameState.getWalls().stream()
                     // get the position of each wall
-                    .map(w -> w.position.multiply(MiniMap.GRID_SIZE))
+                    .map(w -> w.position)
                     // create a 2d rect shape for each potential colliding wall
                     .map(wallPosition -> Rectangle2DUtil.rect(wallPosition, MiniMap.GRID_SIZE))
                     // filter out all the walls that are not intersecting the minimap bounds

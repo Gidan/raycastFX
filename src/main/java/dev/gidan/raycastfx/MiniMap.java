@@ -224,8 +224,8 @@ public class MiniMap extends GameObject {
         gc.setFill(Color.DARKRED);
         Set<Wall> walls = gameState.getWalls();
         walls.forEach(wall -> {
-            double worldX = wall.position.getX() * gridCellSize;
-            double worldY = wall.position.getY() * gridCellSize;
+            double worldX = wall.position.getX() * scale;
+            double worldY = wall.position.getY() * scale;
             Rectangle2D wallArea = new Rectangle2D(worldX, worldY, gridCellSize, gridCellSize);
             Rectangle2D intersection = Rectangle2DUtil.getIntersection(miniMapArea, wallArea);
             if (intersection != null) {

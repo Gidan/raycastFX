@@ -64,7 +64,7 @@ public class GameState {
             for (int c = 0; c < width; c++) {
                 Color color = pixelReader.getColor(c, r);
                 if (color.equals(Color.BLACK)) {
-                    walls.add(Wall.at(c, r));
+                    walls.add(new Wall(Vec2D.of(c, r).multiply(MiniMap.GRID_SIZE)));
                 }
             }
         }
