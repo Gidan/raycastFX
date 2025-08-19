@@ -6,6 +6,9 @@ import lombok.Getter;
 @Getter
 public class GameObject {
 
+    /**
+     * GameObject's world position
+     */
     protected Vec2D position;
     protected Vec2D rotation;
 

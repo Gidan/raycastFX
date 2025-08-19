@@ -6,6 +6,10 @@ public record Ray(@With Status status, @With Vec2D origin, Vec2D direction, @Wit
 
     public static final double INFINITE_DISTANCE = 200;
 
+    public Ray(Status status, Vec2D origin, Vec2D direction) {
+        this(status, origin, direction, origin);
+    }
+
     public enum Status {
         SHOOTING, COLLIDING, INFINITE
     }
