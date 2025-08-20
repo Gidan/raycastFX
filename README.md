@@ -10,7 +10,7 @@ Please find a short video demonstration in my
 - [x] Player 
 - [x] Show a wall in the grid
 - [x] Load map from an external image file
-- [ ] Add collisions
+- [x] Add collisions (simple implementation. just avoid walking through walls.)
 - [x] 2d raycast
 - [x] rendering
 - [ ] fix fish eye effect

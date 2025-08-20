@@ -17,7 +17,7 @@ import java.util.Set;
  * It decides the position, the scale and the appearance of the minimap.
  */
 @Slf4j
-public class MiniMap extends GameObject {
+public class MiniMap {
 
     private static final double INITIAL_CAMERA_POSITION_X = 0;
     private static final double INITIAL_CAMERA_POSITION_Y = 0;
@@ -45,13 +45,11 @@ public class MiniMap extends GameObject {
     Vec2D minimapOffset = Vec2D.of(MINIMAP_PROJECTION_X, MINIMAP_PROJECTION_Y);
 
     public MiniMap(Canvas canvas, GameState gameState) {
-        super(Vec2D.of(INITIAL_CAMERA_POSITION_X, INITIAL_CAMERA_POSITION_Y));
         gc = canvas.getGraphicsContext2D();
         this.player = gameState.getPlayer();
         this.gameState = gameState;
     }
 
-    @Override
     public void update(double deltaTimeMillis) {
         drawMiniMapBackground();
         drawMouseCoordinates();

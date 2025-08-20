@@ -3,6 +3,8 @@ package dev.gidan.raycastfx;
 import dev.gidan.raycastfx.util.Vec2D;
 import lombok.Getter;
 
+import java.util.function.Function;
+
 @Getter
 public class GameObject {
 
@@ -17,7 +19,7 @@ public class GameObject {
         rotation = Vec2D.UP;
     }
 
-    public void update(double deltaTimeInMillis) {
+    public void update(double deltaTimeInMillis, final Function<Vec2D, Boolean> nextPositionCallback) {
 
     }
 

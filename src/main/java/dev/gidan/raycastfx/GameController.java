@@ -17,12 +17,12 @@ public class GameController {
 
     @FXML
     public void initialize() {
-        GameState gameState = new GameState();
+        final GameState gameState = new GameState();
 
-        MiniMap miniMap = new MiniMap(canvas, gameState);
-        GameFrameRenderer gameFrameRenderer = new GameFrameRenderer(canvas, gameState);
+        final MiniMap miniMap = new MiniMap(canvas, gameState);
+        final GameFrameRenderer gameFrameRenderer = new GameFrameRenderer(canvas, gameState);
 
-        GraphicsContext gc = canvas.getGraphicsContext2D();
+        final GraphicsContext gc = canvas.getGraphicsContext2D();
 
         // Start the animation timer
         AnimationTimer timer = new AnimationTimer() {
@@ -32,14 +32,18 @@ public class GameController {
             @Override
             public void handle(long nowInNano) {
                 double delta = frameTime.seconds(nowInNano);
-                gameState.getPlayer().update(delta);
+                gameState.update(delta);
 
                 // Clear the canvas
-                gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+                clearFrame();
 
                 gameFrameRenderer.update(delta);
                 miniMap.update(delta);
                 drawFrameCount(delta);
+            }
+
+            private void clearFrame() {
+                gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
             }
 
             private void drawFrameCount(final double delta) {
@@ -52,4 +56,6 @@ public class GameController {
         };
         timer.start();
     }
+
+
 }

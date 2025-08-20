@@ -1,5 +1,6 @@
 package dev.gidan.raycastfx.util;
 
+import javafx.geometry.Point2D;
 import lombok.Getter;
 
 import java.util.Objects;
@@ -12,6 +13,10 @@ public class Vec2D {
 
     public static Vec2D of(double x, double y) {
         return new Vec2D(x, y);
+    }
+
+    public static Vec2D of(double size) {
+        return new Vec2D(size, size);
     }
 
     // Constructor
@@ -33,6 +38,10 @@ public class Vec2D {
     // Scalar multiplication
     public Vec2D multiply(double scalar) {
         return new Vec2D(this.x * scalar, this.y * scalar);
+    }
+
+    public Vec2D half() {
+        return this.multiply(0.5);
     }
 
     public Vec2D rotateDeg(double angleDegrees) {
@@ -78,6 +87,10 @@ public class Vec2D {
 
     public double angle() {
         return Math.atan2(y, x);
+    }
+
+    public Point2D toPoint2D() {
+        return new Point2D(this.x, this.y);
     }
 
     // String representation

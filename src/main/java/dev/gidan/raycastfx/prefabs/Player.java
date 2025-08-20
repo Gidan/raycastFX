@@ -6,6 +6,8 @@ import dev.gidan.raycastfx.util.Vec2D;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.function.Function;
+
 @Slf4j
 public class Player extends GameObject {
 
@@ -37,6 +39,8 @@ public class Player extends GameObject {
     @Getter
     private double distance;
 
+    Vec2D previousDirection;
+
     public Player() {
         super(Vec2D.of(INITIAL_PLAYER_POSITION_X, INITIAL_PLAYER_POSITION_Y));
     }
@@ -46,8 +50,8 @@ public class Player extends GameObject {
     }
 
     @Override
-    public void update(double deltaTimeMillis) {
-        updateWorldPosition(deltaTimeMillis);
+    public void update(double deltaTimeMillis, final Function<Vec2D, Boolean> nextPositionCallback) {
+        updateWorldPosition(deltaTimeMillis, nextPositionCallback);
         updateFaceDirection();
         updateStatus();
     }
@@ -59,8 +63,7 @@ public class Player extends GameObject {
         }
     }
 
-    Vec2D previousDirection;
-    private void updateWorldPosition(double deltaTime) {
+    private void updateWorldPosition(double deltaTime, final Function<Vec2D, Boolean> nextPositionCallback) {
         Input input = Input.getInstance();
         Vec2D direction = Vec2D.ZERO;
 
@@ -85,7 +88,16 @@ public class Player extends GameObject {
         }
 
         if (speed > 0) {
-            position = position.add(previousDirection.multiply(deltaTime * speed));
+            Vec2D nextPotentialPosition = position.add(previousDirection.multiply(deltaTime * speed));
+
+            // if the next potential position is approved, assign it to actual position.
+            // this is used to allow GameState to check collisions before the calculated position becomes valid even if it is potentially colliding with a wall.
+            // simple solution, but if the player is touching a wall, it will stop there. The player movement is not modified by the colliding object.
+            if (nextPositionCallback.apply(nextPotentialPosition)) {
+                position = nextPotentialPosition;
+            } else {
+                speed = 0;
+            }
         }
     }
 
